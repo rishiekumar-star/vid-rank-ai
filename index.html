@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Vid Rank AI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body{
+      margin:0;
+      font-family:Arial;
+      background:linear-gradient(135deg,#0f172a,#1e3a8a);
+      color:white;
+      text-align:center;
+      padding:40px;
+    }
+    input{
+      padding:12px;
+      width:300px;
+      border-radius:6px;
+      border:none;
+      margin-top:20px;
+    }
+    button{
+      padding:12px 20px;
+      border:none;
+      border-radius:6px;
+      background:#7c3aed;
+      color:white;
+      cursor:pointer;
+      margin-left:10px;
+    }
+    .card{
+      background:#1e293b;
+      padding:20px;
+      border-radius:10px;
+      margin-top:30px;
+      max-width:600px;
+      margin-left:auto;
+      margin-right:auto;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🚀 Vid Rank AI</h1>
+
+<input id="keyword" placeholder="Enter keyword">
+<button onclick="generate()">Generate</button>
+
+<div class="card" id="result"></div>
+
+<script>
+async function generate(){
+  const keyword = document.getElementById("keyword").value;
+
+  if(!keyword){
+    alert("Enter keyword");
+    return;
+  }
+
+  const res = await fetch("/api/generate",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({keyword})
+  });
+
+  const data = await res.json();
+  document.getElementById("result").innerHTML = data.result;
+}
+</script>
+
+</body>
+</html>
