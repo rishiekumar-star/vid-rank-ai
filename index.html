@@ -1,71 +1,304 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Vid Rank AI</title>
+  <title>vid Rank AI - Pro</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
   <style>
     body{
       margin:0;
-      font-family:Arial;
-      background:linear-gradient(135deg,#0f172a,#1e3a8a);
+      font-family:Segoe UI;
+      background:linear-gradient(135deg,#0f172a,#1e1b4b);
       color:white;
-      text-align:center;
+      display:flex;
+    }
+
+    .sidebar{
+      width:230px;
+      background:#111827;
+      height:100vh;
+      padding:25px;
+    }
+
+    .main{
+      flex:1;
       padding:40px;
     }
-    input{
-      padding:12px;
-      width:300px;
-      border-radius:6px;
-      border:none;
-      margin-top:20px;
-    }
-    button{
-      padding:12px 20px;
-      border:none;
-      border-radius:6px;
-      background:#7c3aed;
-      color:white;
-      cursor:pointer;
-      margin-left:10px;
-    }
+
     .card{
       background:#1e293b;
       padding:20px;
       border-radius:10px;
-      margin-top:30px;
-      max-width:600px;
-      margin-left:auto;
-      margin-right:auto;
+      margin-top:20px;
     }
+
+    input{
+      padding:8px;
+      margin-top:10px;
+      border:none;
+      border-radius:5px;
+    }
+
+    button{
+      padding:8px 12px;
+      margin-top:10px;
+      border:none;
+      border-radius:5px;
+      background:#7c3aed;
+      color:white;
+      cursor:pointer;
+    }
+
+    .badge{
+      padding:4px 8px;
+      border-radius:20px;
+      font-size:12px;
+      margin-left:10px;
+    }
+
+    .free{background:#334155;}
+    .pro{background:#f59e0b;}
+    .stats{
+  display:flex;
+  gap:20px;
+  margin:20px 0;
+}
+
+.stat-card{
+  flex:1;
+  background:#1e293b;
+  padding:20px;
+  border-radius:12px;
+  text-align:center;
+}
+
+.tools-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+  gap:20px;
+  margin-top:20px;
+}
+
+.tool-card{
+  background:#1e293b;
+  padding:25px;
+  border-radius:12px;
+  text-align:center;
+  cursor:pointer;
+  transition:0.3s;
+}
+
+.tool-card:hover{
+  transform:translateY(-5px);
+  background:#7c3aed;
+}
+
   </style>
 </head>
+
 <body>
 
-<h1>🚀 Vid Rank AI</h1>
+<div class="sidebar">
+  <h2>🚀 vid Rank AI</h2>
+</div>
 
-<input id="keyword" placeholder="Enter keyword">
-<button onclick="generate()">Generate</button>
+<div class="main">
 
-<div class="card" id="result"></div>
+  <h2>Dashboard</h2>
+  <div class="stats">
+    <div class="stat-card">
+      <h3 id="totalUsage">0</h3>
+      <p>Total Generations</p>
+    </div>
+  
+    <div class="stat-card">
+      <h3 id="todayUsage">0</h3>
+      <p>Today's Usage</p>
+    </div>
+  
+    <div class="stat-card">
+      <h3 id="currentPlan">FREE</h3>
+      <p>Current Plan</p>
+    </div>
+  </div>
+  
+  <!-- Auth -->
+  <div id="authSection">
+    <input id="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password"><br>
+    <button onclick="signup()">Sign Up</button>
+    <button onclick="login()">Login</button>
+    <button onclick="googleLogin()">Google</button>
+  </div>
+
+  <div id="userInfo" style="display:none;">
+    <span id="userEmail"></span>
+    <span id="planBadge" class="badge free">FREE</span>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <!-- Generator -->
+  <div class="card">
+    <input id="keyword" placeholder="Enter keyword"><br>
+    <button onclick="generateSEO()">Generate</button>
+    <div id="result" style="margin-top:15px;"></div>
+  </div>
+  <div class="tools-grid">
+
+    <div class="tool-card" onclick="toolAction('SEO Title Generator')">SEO Title Generator</div>
+    <div class="tool-card" onclick="toolAction('Tag Generator')">Tag Generator</div>
+    <div class="tool-card" onclick="toolAction('Description Writer')">Description Writer</div>
+    <div class="tool-card" onclick="toolAction('Keyword Ideas')">Keyword Ideas</div>
+    <div class="tool-card" onclick="toolAction('Hashtag Generator')">Hashtag Generator</div>
+    <div class="tool-card" onclick="toolAction('Thumbnail Idea')">Thumbnail Idea</div>
+    <div class="tool-card" onclick="toolAction('Video Script')">Video Script</div>
+    <div class="tool-card" onclick="toolAction('Hook Generator')">Hook Generator</div>
+    <div class="tool-card" onclick="toolAction('Trending Topics')">Trending Topics</div>
+    <div class="tool-card" onclick="toolAction('Channel Bio')">Channel Bio Generator</div>
+  
+  </div>
+  
+
+  <!-- History -->
+  <div class="card">
+    <h3>Your History</h3>
+    <div id="historyList"></div>
+  </div>
+
+</div>
 
 <script>
-async function generate(){
-  const keyword = document.getElementById("keyword").value;
 
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyCcw6wUqU8RkSHnhIaVB61bNK4vzipFUug",
+  authDomain: "vid-rank-ai.firebaseapp.com",
+  projectId: "vid-rank-ai",
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// Auth listener
+auth.onAuthStateChanged(async (user)=>{
+  const authSection = document.getElementById("authSection");
+  const userInfo = document.getElementById("userInfo");
+  const userEmail = document.getElementById("userEmail");
+  const badge = document.getElementById("planBadge");
+
+  if(user){
+    authSection.style.display="none";
+    userInfo.style.display="block";
+    userEmail.innerText=user.email;
+
+    const docRef=db.collection("users").doc(user.uid);
+    const snap=await docRef.get();
+
+    if(!snap.exists){
+      await docRef.set({
+        plan:"free",
+        usage:0,
+        lastUsed:new Date().toDateString()
+      });
+    }
+
+    const data=(await docRef.get()).data();
+    badge.className="badge "+data.plan;
+    badge.innerText=data.plan.toUpperCase();
+
+    loadHistory(user);
+
+  }else{
+    authSection.style.display="block";
+    userInfo.style.display="none";
+  }
+});
+
+// Signup
+function signup(){
+  const email=document.getElementById("email").value;
+  const pass=document.getElementById("password").value;
+  auth.createUserWithEmailAndPassword(email,pass)
+    .catch(e=>alert(e.message));
+}
+
+// Login
+function login(){
+  const email=document.getElementById("email").value;
+  const pass=document.getElementById("password").value;
+  auth.signInWithEmailAndPassword(email,pass)
+    .catch(e=>alert(e.message));
+}
+
+// Google login
+function googleLogin(){
+  const provider=new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider)
+    .catch(e=>alert(e.message));
+}
+
+// Logout
+function logout(){
+  auth.signOut();
+}
+
+// Generate + Save
+async function generateSEO(){
+
+  const user=auth.currentUser;
+  if(!user){
+    alert("Login first");
+    return;
+  }
+
+  const keyword=document.getElementById("keyword").value;
   if(!keyword){
     alert("Enter keyword");
     return;
   }
 
-  const res = await fetch("/api/generate",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({keyword})
+  const resultHTML=
+    "<b>Title:</b> Master "+keyword+" in 2026<br>"+
+    "<b>Tags:</b> "+keyword+", youtube growth, seo<br>"+
+    "<b>Description:</b> Learn "+keyword+" step by step.";
+
+  document.getElementById("result").innerHTML=resultHTML;
+
+  await db.collection("users")
+    .doc(user.uid)
+    .collection("history")
+    .add({
+      keyword:keyword,
+      createdAt:new Date()
+    });
+
+  loadHistory(user);
+}
+
+// Load history
+async function loadHistory(user){
+  const snapshot=await db.collection("users")
+    .doc(user.uid)
+    .collection("history")
+    .orderBy("createdAt","desc")
+    .get();
+
+  let html="";
+  snapshot.forEach(doc=>{
+    const data=doc.data();
+    html+="<div style='margin-bottom:8px;background:#334155;padding:8px;border-radius:5px;'>"+
+           data.keyword+"</div>";
   });
 
-  const data = await res.json();
-  document.getElementById("result").innerHTML = data.result;
+  document.getElementById("historyList").innerHTML=html;
 }
+
 </script>
 
 </body>
